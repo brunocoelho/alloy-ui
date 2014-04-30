@@ -22,6 +22,8 @@ var Lang = A.Lang,
 
     WidgetStdMod = A.WidgetStdMod,
 
+    AUTO_COMPLETE_PLUGIN = 'ac',
+
     REGEX_BR = /<br\s*\/?>/gi,
     REGEX_NL = /[\r\n]/g,
 
@@ -36,6 +38,10 @@ var Lang = A.Lang,
     CSS_CELLEDITOR_EDIT_LABEL = A.getClassName('celleditor', 'edit', 'label'),
     CSS_CELLEDITOR_EDIT_LINK = A.getClassName('celleditor', 'edit', 'link'),
     CSS_CELLEDITOR_EDIT_OPTION_ROW = A.getClassName('celleditor', 'edit', 'option', 'row'),
+    CSS_CELLEDITOR_EDIT_VALIDATION_INPUT_VALUE = A.getClassName('celleditor', 'edit', 'validation', 'input', 'value'),
+    CSS_CELLEDITOR_EDIT_VALIDATION_SELECT = A.getClassName('celleditor', 'edit', 'validation', 'select'),
+    CSS_CELLEDITOR_EDIT_VALIDATION_FIELD_SELECT = A.getClassName('celleditor', 'edit', 'validation', 'field', 'select'),
+    CSS_CELLEDITOR_EDIT_VALIDATION_SELECT_TYPE_ERROR = A.getClassName('celleditor', 'edit', 'validation', 'select', 'type', 'error'),
     CSS_CELLEDITOR_ELEMENT = A.getClassName('celleditor', 'element'),
     CSS_CELLEDITOR_OPTION = A.getClassName('celleditor', 'option'),
     CSS_ICON = A.getClassName('glyphicon'),
@@ -1962,6 +1968,770 @@ var RadioCellEditor = A.Component.create({
 });
 
 A.RadioCellEditor = RadioCellEditor;
+
+var Validator = A.Component.create({
+    /**
+     * Static property provides a string to identify the class.
+     *
+     * @property NAME
+     * @type {String}
+     * @static
+     */
+    NAME: 'Validator',
+
+    /**
+     * Static property used to define which component it extends.
+     *
+     * @property EXTENDS
+     * @type {Object}
+     * @static
+     */
+    EXTENDS: A.BaseCellEditor,
+
+    /**
+     * Static property used to define the default attribute configuration for Validator.
+     *
+     * @property ATTRS
+     * @type {Object}
+     * @static
+     */
+    ATTRS: {
+        /**
+         * Contains validation types and its correspondents default values.
+         *
+         * @attribute options
+         * @type {Object}
+         */
+        options: {
+            value: {
+                number: [
+                    { name: 'lessThan', fieldSize: 1 },
+                    { name: 'lessThanOrEqual', fieldSize: 1 },
+                    { name: 'greaterThan', fieldSize: 1 },
+                    { name: 'greaterThanOrEqual', fieldSize: 1 },
+                    { name: 'equalTo', fieldSize: 1 },
+                    { name: 'notEqualTo', fieldSize: 1 }
+                ],
+                text: [
+                    { name: 'contains', fieldSize: 1 },
+                    { name: 'doesNotContains', fieldSize: 1 },
+                    { name: 'equals', fieldSize: 1 },
+                    { name: 'isValidEmail', fieldSize: 0 },
+                    { name: 'isValidURL', fieldSize: 0 }
+                ]
+            },
+            readOnly: true
+        },
+
+        /**
+         * Contains rules to build the validations.
+         *
+         * @attribute rules
+         * @default []
+         * @type {Array}
+         */
+        rules: {
+            value: [],
+            writeOnce: 'initOnly'
+        },
+
+        /**
+         * Collection of strings used to label elements of the UI.
+         *
+         * @attribute strings
+         * @type {Object}
+         */
+        strings: {
+            value: {
+                addOption: 'Add new rule',
+                cancel: 'Cancel',
+                contains: 'Contains',
+                customErrorText: 'Custom error text',
+                doesNotContains: 'Does not contains',
+                editConditionalVisibility: 'Edit conditional visibility',
+                editValidations: 'Edit validation(s) of type ',
+                equals: 'Equals',
+                equalTo: 'Equal to',
+                greaterThan: 'Greater than',
+                greaterThanOrEqual: 'Greater than or equal',
+                isValidEmail: 'Is valid email',
+                isValidURL: 'Is valid URL',
+                lessThan: 'Less than',
+                lessThanOrEqual: 'Less than or equal',
+                notEqualTo: 'Not equal to',
+                number: 'Number',
+                remove: 'Remove',
+                save: 'Save',
+                text: 'Text'
+            },
+            readOnly: true
+        },
+        // TODO: Get the real type when integrating with Liferay Portal
+        /**
+         * Type of current field.
+         *
+         * @attribute type
+         * @type {String}
+         */
+        type: {
+            value: 'text',
+            writeOnce: 'initOnly'
+        }
+    },
+    prototype: {
+        ADD_LINK_TEMPLATE: '<a class="' + [CSS_CELLEDITOR_EDIT_LINK, CSS_CELLEDITOR_EDIT_ADD_OPTION].join(' ') + '" href="javascript:void(0);">{addOption}</a>',
+        ELEMENT_TEMPLATE: '<div class="' + CSS_CELLEDITOR_ELEMENT + '"></div>',
+        INPUT_VALIDATION_VALUE_TEMPLATE:'<input class="' + [CSS_CELLEDITOR_EDIT_INPUT_VALUE, CSS_CELLEDITOR_EDIT_VALIDATION_INPUT_VALUE].join(' ') + '" size="15" type="text" placeholder="{placeholder}" value="{valueName}" />',
+        LABEL_TEMPLATE: '<div class="' + CSS_CELLEDITOR_EDIT_LABEL + '"><span>{label}{type}</span></div>',
+        OPTION_TEMPLATE: '<option value="{value}" {selected}>{label}</option>',
+        REMOVE_LINK_TEMPLATE: '<a class="' + [CSS_CELLEDITOR_EDIT_LINK, CSS_CELLEDITOR_EDIT_DELETE_OPTION].join(' ') + '" href="javascript:void(0);">{remove}</a>',
+        SELECT_VALIDATION_TYPE_TEMPLATE: '<select class="' + [CSS_CELLEDITOR_ELEMENT, CSS_CELLEDITOR_EDIT_VALIDATION_SELECT].join(' ') + '"></select>',
+        SELECT_VALIDATION_FIELD_TEMPLATE: '<select class="' + [CSS_CELLEDITOR_ELEMENT, CSS_CELLEDITOR_EDIT_VALIDATION_FIELD_SELECT].join(' ') + '"></select>',
+        VALIDATOR_ROW_TEMPLATE: '<div class="' + CSS_CELLEDITOR_EDIT_OPTION_ROW + '"></div>',
+
+        /**
+         * Bind the events on the Validator UI. Lifecycle.
+         *
+         * @method bindUI
+         * @protected
+         */
+        bindUI: function() {
+            var instance = this;
+
+            A.Validator.superclass.bindUI.apply(instance, arguments);
+
+            instance.elements.delegate('click', A.bind(instance._onClickEvent, instance),
+                '.' + CSS_CELLEDITOR_EDIT_LINK);
+
+            instance.elements.delegate('change', A.bind(instance._onChangeEvent, instance),
+                '.' + CSS_CELLEDITOR_EDIT_VALIDATION_SELECT);
+        },
+
+        /**
+         * Add new inputs when change validation type.
+         *
+         * @method _addNewInputs
+         * @param {Node} target Node reference to add new inputs after it
+         * @param {Number} numberOfInputs Current's field number of inputs
+         * @protected
+         */
+        _addNewInputs: function(target, numberOfInputs) {
+            var instance = this,
+                i;
+
+            for (i = 0; i < numberOfInputs; i++) {
+                target.ancestor().insertBefore(
+                    instance._createTemplate(instance.INPUT_VALIDATION_VALUE_TEMPLATE, {
+                        placeholder: '',
+                        valueName: ''
+                    }),
+                    target.next()
+                );
+            }
+        },
+
+        /**
+         * Add new default rule.
+         *
+         * @method _addRule
+         * @param {Node} target Node reference to add new rule before it
+         * @protected
+         */
+        _addRule: function(target) {
+            var defaultRuleObject = this._createDefaultRuleObject(),
+                defaultRule = this._createRule(defaultRuleObject);
+
+            this.elements.insertBefore(defaultRule, target);
+        },
+
+        /**
+         * Create template for add link.
+         *
+         * @method _createAddLinkTemplate
+         * @return {String}
+         * @protected
+         */
+        _createAddLinkTemplate: function() {
+            var instance = this,
+                strings = instance.getStrings();
+
+            return instance._createTemplate(instance.ADD_LINK_TEMPLATE, {
+                    addOption: strings.addOption
+                });
+        },
+
+        /**
+         * Create default rule object.
+         *
+         * @method _createDefaultRuleObject
+         * @return {String}
+         * @protected
+         */
+        _createDefaultRuleObject: function() {},
+
+        /**
+         * Create label.
+         *
+         * @method _createLabelTemplate
+         * @return {String}
+         * @protected
+         */
+        _createLabelTemplate: function(label, type) {
+            var instance = this;
+
+            return instance._createTemplate(instance.LABEL_TEMPLATE, {
+                    label: label,
+                    type: type
+                });
+        },
+
+        /**
+         * Create rule line.
+         *
+         * @method _createRule
+         * @return {String}
+         * @protected
+         */
+        _createRule: function() {},
+
+        /**
+         * Create templates. Factory.
+         *
+         * @method _createRule
+         * @param {String} template Template that will be parsed.
+         * @param {Object} options Object with options to parse the template.
+         * @return {String}
+         * @protected
+         */
+        _createTemplate: function(template, options) {
+            return Lang.sub(template, options);
+        },
+
+        /**
+         * Fires when user changes validation type.
+         *
+         * @method _onChangeEvent
+         * @param {EventFacade} event
+         */
+        _onChangeEvent: function(event) {
+            var currentTarget = event.currentTarget;
+
+            if (currentTarget.test('.' + CSS_CELLEDITOR_EDIT_VALIDATION_SELECT)) {
+                this._repaintInputs(currentTarget);
+            }
+        },
+
+        /**
+         * Fires when user clicks on a link.
+         *
+         * @method _onClickEvent
+         * @param {EventFacade} event
+         */
+        _onClickEvent: function(event) {
+            var currentTarget = event.currentTarget;
+
+            if (currentTarget.test('.' + CSS_CELLEDITOR_EDIT_DELETE_OPTION)) {
+                this._removeRule(currentTarget.ancestor('.' + CSS_CELLEDITOR_EDIT_OPTION_ROW));
+            }
+            else if (currentTarget.test('.' + CSS_CELLEDITOR_EDIT_ADD_OPTION)) {
+                this._addRule(currentTarget);
+            }
+        },
+
+        /**
+         * Removes current inputs when changing validation type.
+         *
+         * @method _removeCurrentInputs
+         * @param {Node} target
+         */
+        _removeCurrentInputs: function(target) {
+            target.all('.' + CSS_CELLEDITOR_EDIT_VALIDATION_INPUT_VALUE).remove();
+        },
+
+        /**
+         * Removes the whole rule.
+         *
+         * @method _onClickEvent
+         * @param {Node} validation Node with the whole validation.
+         * @param {EventFacade} event
+         */
+         _removeRule: function(validation) {
+            validation.remove();
+        },
+
+        /**
+         * Repaint inputs when changing validation type.
+         *
+         * @method _repaintInputs
+         * @param {Node} target Select with validation options.
+         */
+        _repaintInputs: function(target) {
+            var options = this.get('options'),
+                type = this.get('type'),
+                validationTypes = options[type],
+                i,
+                len = validationTypes.length,
+                numberOfInputs;
+
+            this._removeCurrentInputs(target.ancestor());
+
+            for (i = 0; i < len; i++) {
+                if (validationTypes[i].name === target._node.value) {
+                    numberOfInputs = validationTypes[i].fieldSize;
+                }
+            }
+
+            this._addNewInputs(target, numberOfInputs);
+        }
+    }
+});
+
+A.Validator = Validator;
+
+var ConditionalVisibilityCellEditor = A.Component.create({
+
+    /**
+     * Static property provides a string to identify the class.
+     *
+     * @property NAME
+     * @type String
+     * @static
+     */
+    NAME: 'conditionalVisibility',
+
+    /**
+     * Static property used to define which component it extends.
+     *
+     * @property EXTENDS
+     * @type Object
+     * @static
+     */
+    EXTENDS: A.Validator,
+
+    /**
+     * Static property used to define the default attribute
+     * configuration for the DateCellEditor.
+     *
+     * @property ATTRS
+     * @type Object
+     * @static
+     */
+    ATTRS: {
+        field: {
+            value: {},
+            validator: Lang.isObject
+        },
+        fields: {
+            value: [
+                'text525',
+                'radio743',
+                'button3052',
+                'textarea3550'
+            ],
+        },
+        validationType: {
+            value: '',
+            validator: Lang.isString
+        },
+        value: {
+            value: [],
+            validator: Lang.isArray
+        }
+    },
+
+    prototype: {
+        /**
+         * Render ConditionalVisibilityCellEditor component instance. Lifecycle.
+         *
+         * @method renderUI
+         * @protected
+         */
+        renderUI: function() {
+            A.ConditionalVisibilityCellEditor.superclass.renderUI.apply(this, arguments);
+
+            this._renderConditionalVisibility();
+        },
+
+        /**
+         * Create a default rule object to build a brand new validation.
+         *
+         * @method _createDefaultRuleObject
+         * @return {Object} Default rule object
+         * @protected
+         */
+        _createDefaultRuleObject: function() {
+            // TODO: Default options, get the real options when integrating with Liferay Portal
+            var instance = this,
+                name = instance.get('fields')[0],
+                type = 'text',
+                validationType = instance.get('options')[type][0].name,
+                value = '';
+
+            return { field: { type: type, name: name }, validationType: validationType, value: [value] };
+        },
+
+        /**
+         * Create validation rules.
+         *
+         * @method _createRules
+         * @return {String} String with whole rules
+         * @protected
+         */
+        _createRules: function() {
+            var instance = this,
+                buffer = [];
+
+            A.each(instance.get('rules'), function(rule) {
+                buffer.push(instance._createRule(rule));
+            });
+
+            return buffer.join('');
+        },
+
+        /**
+         * Create a single validation rule.
+         *
+         * @method _createRule
+         * @return {String} String with a single rule
+         * @protected
+         */
+        _createRule: function(rule) {
+            var instance = this,
+                buffer = [],
+                // TODO: Get the real fields when integrating with Liferay Portal
+                fields = this.get('fields'),
+                numberOfInputs,
+                options = instance.get('options'),
+                row = A.Node.create(instance.VALIDATOR_ROW_TEMPLATE),
+                selected,
+                selectFieldOption = A.Node.create(instance.SELECT_VALIDATION_FIELD_TEMPLATE),
+                selectValidationOption = A.Node.create(instance.SELECT_VALIDATION_TYPE_TEMPLATE),
+                strings = instance.getStrings(),
+                types = [];
+
+            A.each(fields, function(field) {
+                selected = '';
+
+                if (field === rule.field.name) {
+                    selected = 'selected';
+                }
+
+                buffer.push(instance._createTemplate(instance.OPTION_TEMPLATE, {
+                        label: field,
+                        selected: selected,
+                        value: field
+                    }
+                ));
+            });
+
+            selectFieldOption.setContent(buffer.join(''));
+            row.append(selectFieldOption._node);
+            buffer = [];
+
+            // TODO: Get the correct type when change validation rule
+            types = options[rule.field.type];
+
+            // Options buffer
+            A.each(types, function(type) {
+                selected = '';
+
+                if (type.name === rule.validationType) {
+                    selected = 'selected';
+                    numberOfInputs = type.fieldSize;
+                }
+
+                buffer.push(instance._createTemplate(
+                    instance.OPTION_TEMPLATE, {
+                        label: strings[type.name],
+                        selected: selected,
+                        value: type.name
+                    }
+                ));
+            });
+
+            selectValidationOption.setContent(buffer.join(''));
+            row.append(selectValidationOption);
+            buffer = [];
+
+            // Inputs buffer
+            for (var i = 0; i < numberOfInputs; i++) {
+                buffer.push(instance._createTemplate(
+                    instance.INPUT_VALIDATION_VALUE_TEMPLATE, {
+                        placeholder: '',
+                        valueName: rule.value[i]
+                    }
+                ));
+            }
+
+            buffer.push(instance._createTemplate(instance.REMOVE_LINK_TEMPLATE, {
+                    remove: strings.remove
+                })
+            );
+
+            row.append(buffer.join(''));
+
+            return row._node.outerHTML;
+        },
+
+        /**
+         * Build the whole conditional visibility window.
+         *
+         * @method _renderConditionalVisibility
+         */
+        _renderConditionalVisibility: function() {
+            var instance = this,
+                buffer = [],
+                strings = instance.getStrings();
+
+            buffer.push(instance._createLabelTemplate(strings.editConditionalVisibility, ''));
+            buffer.push(instance._createRules());
+            buffer.push(instance._createAddLinkTemplate());
+
+            instance.elements.setContent(buffer.join(''));
+        }
+    }
+});
+
+A.ConditionalVisibilityCellEditor = ConditionalVisibilityCellEditor;
+
+/**
+ * ValidatorCellEditor class.
+ *
+ * @class A.ValidatorCellEditor
+ * @extends A.Validator
+ * @param {Object} config Object literal specifying widget configuration properties.
+ * @constructor
+ */
+var ValidatorCellEditor = A.Component.create({
+
+    /**
+     * Static property provides a string to identify the class.
+     *
+     * @property NAME
+     * @type String
+     * @static
+     */
+    NAME: 'validatorCellEditor',
+
+    /**
+     * Static property used to define which component it extends.
+     *
+     * @property EXTENDS
+     * @type Object
+     * @static
+     */
+    EXTENDS: A.Validator,
+
+    prototype: {
+        INPUT_CUSTOM_MESSAGE_TEMPLATE:'<input class="' + CSS_CELLEDITOR_EDIT_INPUT_VALUE + '" size="30" type="text" placeholder="{placeholder}" value="{valueName}" />',
+        SELECT_TYPE_ERROR_MESSAGE: '<select class="' + [CSS_CELLEDITOR_ELEMENT, CSS_CELLEDITOR_EDIT_VALIDATION_SELECT_TYPE_ERROR].join(' ') + '"><option value="info" selected>Info</option> <option value="error">Error</option> </select>',
+
+
+        /**
+         * Render the ValidatorCellEditor component instance. Lifecycle.
+         *
+         * @method renderUI
+         * @protected
+         */
+        renderUI: function() {
+            A.ValidatorCellEditor.superclass.renderUI.apply(this, arguments);
+
+            this._renderValidator();
+        },
+
+        /**
+         * Bind the events on the ValidatorCellEditor UI. Lifecycle.
+         *
+         * @method bindUI
+         * @protected
+         */
+        bindUI: function() {
+            var instance = this;
+
+            A.ValidatorCellEditor.superclass.bindUI.apply(instance, arguments);
+
+            instance.elements.delegate('keydown', A.bind(instance._onKeydownEvent, instance),
+                '.' + CSS_CELLEDITOR_EDIT_VALIDATION_INPUT_VALUE);
+        },
+
+        /**
+         * Create a default rule object to build a brand new validation.
+         *
+         * @method _createDefaultRuleObject
+         * @return {Object} Default rule object
+         * @protected
+         */
+        _createDefaultRuleObject: function() {
+            var type = this.get('type'),
+                name = this._getFirstOptionName(type),
+                value = this._getFirstOptionValue(type);
+
+            return { type: type, name: name, value: value };
+        },
+
+        /**
+         * Create validation rules.
+         *
+         * @method _createRules
+         * @return {String} String with whole rules
+         * @protected
+         */
+        _createRules: function() {
+            var instance = this,
+                buffer = [];
+
+            A.each(instance.get('rules'), function(rule) {
+                buffer.push(instance._createRule(rule));
+            });
+
+            return buffer.join('');
+        },
+
+        /**
+         * Create a single validation rule .
+         *
+         * @method _createRule
+         * @return {String} String with a single rule
+         * @protected
+         */
+        _createRule: function(rule) {
+            var instance = this,
+                buffer = [],
+                numberOfInputs,
+                options = instance.get('options'),
+                row = A.Node.create(instance.VALIDATOR_ROW_TEMPLATE),
+                selected,
+                selectOption = A.Node.create(instance.SELECT_VALIDATION_TYPE_TEMPLATE),
+                strings = instance.getStrings();
+
+            // Options buffer
+            A.each(options[instance.get('type')], function(type) {
+                selected = '';
+
+                if (type.name === rule.validationType) {
+                    selected = 'selected';
+                    numberOfInputs = type.fieldSize;
+                }
+
+                buffer.push(instance._createTemplate(instance.OPTION_TEMPLATE, {
+                        label: strings[type.name],
+                        selected: selected,
+                        value: type.name
+                    }
+                ));
+            });
+
+            selectOption.setContent(buffer.join(''));
+            row.append(selectOption._node);
+            buffer = [];
+
+            // Inputs buffer
+            for (var i = 0; i < numberOfInputs; i++) {
+                buffer.push(instance._createTemplate(
+                    instance.INPUT_VALIDATION_VALUE_TEMPLATE, {
+                        placeholder: '',
+                        valueName: rule.value[i]
+                    }
+                ));
+            }
+
+            buffer.push(instance.SELECT_TYPE_ERROR_MESSAGE);
+
+            buffer.push(instance._createTemplate(instance.INPUT_CUSTOM_MESSAGE_TEMPLATE, {
+                    placeholder: strings.customErrorText,
+                    valueName: ''
+                })
+            );
+
+            buffer.push(instance._createTemplate(instance.REMOVE_LINK_TEMPLATE, {
+                    remove: strings.remove
+                })
+            );
+
+            row.append(buffer.join(''));
+
+            return row._node.outerHTML;
+        },
+
+        /**
+         * Get the first option name according to the current's field type.
+         *
+         * @method _getFirstOptionName
+         * @param {String} type Current's field type
+         * @return {String} First option's name
+         */
+        _getFirstOptionName: function(type) {
+            return this.get('options')[type][0].name;
+        },
+
+        /**
+         * Get the first option value according to the current's field type.
+         *
+         * @method _getFirstOptionValue
+         * @param {String} type Current's field type
+         * @return {String} First option's value
+         */
+        _getFirstOptionValue: function(type) {
+            var fieldSize = this.get('options')[type][0].fieldSize,
+                i,
+                value = [];
+
+            for (i = 0; i < fieldSize; i++) {
+                value.push('');
+            }
+
+            return value;
+        },
+
+        // _handleSaveEvent: function() {},
+
+        /**
+         * Fires when the user press a key.
+         *
+         * @method _onKeydownEvent
+         * @param {EventFacade} event
+         */
+        _onKeydownEvent: function(event) {
+            var currentTarget = event.currentTarget,
+                // TODO: Get the real fields when integrating with Liferay Portal
+                fields = [
+                    'text525',
+                    'radio743',
+                    'button3052',
+                    'textarea3550'
+                ];
+
+            if (!currentTarget.hasPlugin(AUTO_COMPLETE_PLUGIN)) {
+                currentTarget.plug(A.Plugin.AutoComplete, {
+                    minQueryLength: 0,
+                    queryDelay: 0,
+                    resultFilters: 'charMatch',
+                    resultHighlighter: 'charMatch',
+                    source: fields
+                });
+            }
+        },
+
+        /**
+         * Build the whole validator window.
+         *
+         * @method _renderValidator
+         */
+        _renderValidator: function() {
+            var instance = this,
+                buffer = [],
+                strings = instance.getStrings();
+
+            buffer.push(instance._createLabelTemplate(strings.editValidations, strings[instance.get('type')]));
+            buffer.push(instance._createRules());
+            buffer.push(instance._createAddLinkTemplate());
+
+            instance.elements.setContent(buffer.join(''));
+        }
+    }
+});
+
+A.ValidatorCellEditor = ValidatorCellEditor;
 
 /**
  * DateCellEditor class.

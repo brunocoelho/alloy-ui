@@ -145,7 +145,116 @@ var FormBuilderTextField = A.Component.create({
                 name: strings.width
             });
 
+            model.push({
+                attributeName: 'validator',
+                editor: new A.ValidatorCellEditor({
+                    type: 'text', // TODO: Get the real type when intregrating with Liferay Portal
+                    rules: instance._parseRules('contains("foo") && equals("bar") && isValidEmail() && doesNotContains("bar") && isValidURL()')
+                }),
+                formatter: function() {},
+                name: strings['validator']
+            });
+
+            model.push({
+                attributeName: 'conditionalVisibility',
+                editor: new A.ConditionalVisibilityCellEditor({
+                    // TODO: Create a parser with mixed rules
+                    rules: [
+                        { field: { type: 'text', name: 'text525' }, validationType: 'equals', value: ['foo'] },
+                        { field: { type: 'text', name: 'textarea3550' }, validationType: 'isValidURL', value: [] },
+                        { field: { type: 'number', name: 'radio743' }, validationType: 'lessThan', value: ['20'] },
+                        { field: { type: 'number', name: 'button3052' }, validationType: 'equalTo', value: ['10'] }
+                    ]
+                }),
+                name: strings.conditionalVisibility
+            });
+
             return model;
+        },
+
+        /**
+         * Helper method to parse rules.
+         *
+         * @method _parseRules
+         * @param {String} rules
+         * @return {Object}
+         * @protected
+         */
+        _parseRules: function(rules) {
+            var instance = this,
+                numberRegex = />|<|=/,
+                textRegex = /contains|doesNotContains|equals|isValidEmail|isValidURL/;
+
+            if (rules.match(numberRegex)) {
+                return instance._parseNumberRules(rules);
+            }
+            else if (rules.match(textRegex)) {
+                return instance._parseTextRules(rules);
+            }
+        },
+
+        /**
+         * Helper method to parse number rules.
+         *
+         * @method _parseNumberRules
+         * @param {String} rules
+         * @return {Object}
+         * @protected
+         */
+        _parseNumberRules: function(rules) {
+            var arrayOfRules = rules.split('&&'),
+                equivalentFunctions = {
+                    '<': 'lessThan',
+                    '<=': 'lessThanOrEqual',
+                    '>': 'greaterThan',
+                    '>=': 'greaterThanOrEqual',
+                    '==': 'equalTo',
+                    '!=': 'notEqualTo'
+                },
+                i,
+                len = arrayOfRules.length,
+                parsedRules = [],
+                regex = /(\W+)(\w+(?:\.?\w+)?)/,
+                rule;
+
+                for (i = 0; i < len; i++) {
+                    rule = arrayOfRules[i].trim();
+                    rule = rule.match(regex);
+
+                    parsedRules.push({ validationType: equivalentFunctions[rule[1].trim()], value: [rule[2]] });
+                }
+
+                return parsedRules;
+        },
+
+        /**
+         * Helper method to parse text rules.
+         *
+         * @method _parseTextRules
+         * @param {String} rules
+         * @return {Object}
+         * @protected
+         */
+        _parseTextRules: function(rules) {
+            var arrayOfRules = rules.split('&&'),
+                i,
+                len = arrayOfRules.length,
+                parsedRules = [],
+                regex = /(\w+)\((.*)\)/,
+                rule;
+
+            for (i = 0; i < len; i++) {
+                rule = arrayOfRules[i].trim();
+                rule = rule.match(regex);
+
+                value = rule[2].replace(/\'|\"/g, '').split(',').map(function(param) {
+                    return param.trim();
+                });
+
+                parsedRules.push({ validationType: rule[1], value: value });
+            }
+
+            return parsedRules;
         },
 
         /**

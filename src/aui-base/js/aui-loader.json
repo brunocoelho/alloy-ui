@@ -241,7 +241,10 @@
             "aui-datatype",
             "aui-toolbar",
             "aui-form-validator",
-            "aui-datatable-core"
+            "aui-datatable-core",
+            "autocomplete",
+            "autocomplete-filters",
+            "autocomplete-highlighters"
         ],
         "skinnable": true
     },

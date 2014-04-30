@@ -25,26 +25,26 @@ A.mix(
          * @param compareFn
          * @return sort
          */
-        compareIgnoreWhiteSpace: function(a, b, desc, compareFn) {
-            var sort;
+	compareIgnoreWhiteSpace: function(a, b, desc, compareFn) {
+	    var sort;
 
-            compareFn = compareFn || ASort.compare;
+	    compareFn = compareFn || ASort.compare;
 
-            if ((a === '') && (b === '')) {
-                sort = 0;
-            }
-            else if (a === '') {
-                sort = 1;
-            }
-            else if (b === '') {
-                sort = -1;
-            }
-            else {
-                sort = compareFn.apply(this, arguments);
-            }
+	    if ((a === '') && (b === '')) {
+		sort = 0;
+	    }
+	    else if (a === '') {
+		sort = 1;
+	    }
+	    else if (b === '') {
+		sort = -1;
+	    }
+	    else {
+		sort = compareFn.apply(this, arguments);
+	    }
 
-            return sort;
-        },
+	    return sort;
+	},
 
         /**
          * Sorts an object array keeping the order of equal items. ECMA script

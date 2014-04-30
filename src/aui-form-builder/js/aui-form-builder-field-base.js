@@ -121,6 +121,17 @@ var FormBuilderField = A.Component.create({
         },
 
         /**
+         * Conditional Visibility clauses.
+         *
+         * @attribute conditionalVisibility
+         * @default '...'
+         * @type String
+         */
+        conditionalVisibility: {
+            value: '...'
+        },
+
+        /**
          * Collection of toolbar controls.
          *
          * @attribute controlsToolbar
@@ -309,6 +320,7 @@ var FormBuilderField = A.Component.create({
             value: {
                 button: 'Button',
                 buttonType: 'Button Type',
+                conditionalVisibility: 'Conditional Visibility',
                 deleteFieldsMessage: 'Are you sure you want to delete the selected field(s)?',
                 duplicateMessage: 'Duplicate',
                 editMessage: 'Edit',
@@ -328,6 +340,7 @@ var FormBuilderField = A.Component.create({
                 submit: 'Submit',
                 tip: 'Tip',
                 type: 'Type',
+                validator: 'Validator',
                 width: 'Width',
                 yes: 'Yes'
             }
@@ -387,6 +400,17 @@ var FormBuilderField = A.Component.create({
         unique: {
             setter: A.DataType.Boolean.parse,
             value: false
+        },
+
+        /**
+         * Validator clauses.
+         *
+         * @attribute validator
+         * @default '...'
+         * @type String
+         */
+        validator: {
+            value: '...'
         },
 
         /**
@@ -810,7 +834,23 @@ var FormBuilderField = A.Component.create({
                 attributeName: 'tip',
                 editor: new A.TextAreaCellEditor(),
                 name: strings.tip
-            }];
+            }
+                // Esse validator deve ser genérico, porém deve ser sobrescrito feito o
+                // atributo `predefinedValue` em aui-form-builder-field-text
+                // no método getPropertyModel.
+                // A princípio estou fazendo ele apenas em aui-form-builder-field-text
+                // para testar mais facilmente.
+                // {
+                //   attributeName: 'conditionalVisibility',
+                //   editor: new A.ConditionalVisibilityCellEditor(),
+                //   name: strings.conditionalVisibility
+                // }
+                // , {
+                //   attributeName: 'validator',
+                //   editor: new A.ValidatorCellEditor(),
+                //   name: strings.validator
+                // }
+            ];
         },
 
         /**

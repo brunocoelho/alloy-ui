@@ -22,7 +22,7 @@
     vertical-align: middle;
 }
 
-.basecelleditor-hidden, .datecelleditor-hidden, .dropdowncelleditor-hidden, .textcelleditor-hidden, .textareacelleditor-hidden, .checkboxcelleditor-hidden, .radiocelleditor-hidden {
+.basecelleditor-hidden, .datecelleditor-hidden, .dropdowncelleditor-hidden, .textcelleditor-hidden, .textareacelleditor-hidden, .checkboxcelleditor-hidden, .radiocelleditor-hidden, .validatorcelleditor-hidden, .conditionalvisibility-hidden {
     display: none !important;
 }
 
@@ -41,4 +41,7 @@
 .basecelleditor input[type="checkbox"], .basecelleditor input[type="radio"] {
     margin-left: 0;
     margin-right: 5px;
+}
+.celleditor-element, .celleditor-edit-validation-input-value, .celleditor-edit-validation-select-type-error, .celleditor-edit-input-value, .celleditor-element {
+    margin-right: 10px;
 }

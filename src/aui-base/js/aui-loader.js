@@ -251,7 +251,10 @@ Y.mix(YUI.Env[Y.version].modules, {
             "aui-datatype",
             "aui-toolbar",
             "aui-form-validator",
-            "aui-datatable-core"
+            "aui-datatable-core",
+            "autocomplete",
+            "autocomplete-filters",
+            "autocomplete-highlighters"
         ],
         "skinnable": true
     },
@@ -1167,4 +1170,4 @@ Y.mix(YUI.Env[Y.version].modules, {
         ]
     }
 });
-YUI.Env[Y.version].md5 = 'f3d7a8f80c9a288b490d4768fee41a27';
+YUI.Env[Y.version].md5 = '705408a60b253586bfd1e08079316baf';
