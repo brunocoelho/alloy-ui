@@ -5,18 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title></title>
     <link rel="stylesheet" href="../../build/aui-css/css/bootstrap.css">
+    <link href="alloy-editor/assets/alloy-editor-dark.css" rel="stylesheet">
     <script src="../../build/aui/aui.js"></script>
+
+    <script>
+        var CKEDITOR_BASEPATH = '/demos/form-builder/alloy-editor/';
+    </script>
+
+    <script src="alloy-editor/ckeditor.js"></script>
+    <script src="alloy-editor/alloy-editor-core.js"></script>
+
+    <style media="screen">
+        .alloy-editor-toolbar {
+            z-index: 3;
+        }
+
+        #alloy-editor-field-control {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 4px 8px 0 8px;
+        }
+    </style>
 </head>
 <body class="yui3-skin-sam">
-<div id="wrapper">
-    <div id="formBuilder"></div>
-</div>
+    <div id="wrapper">
+        <div id="formBuilder"></div>
+    </div>
 
 <script type="text/javascript" charset="utf-8">
+
 YUI({ filter:'raw' }).use(
     'aui-form-builder',
     'aui-form-builder-field-choice',
     'aui-form-builder-field-text',
+    'aui-form-builder-field-paragraph',
     'aui-form-builder-field-sentence',
     'aui-form-builder-page-break-row',
     function(Y) {
@@ -50,7 +72,12 @@ YUI({ filter:'raw' }).use(
                             })
                         }),
                         new Y.LayoutCol({
-                            size: 4
+                            size: 4,
+                            value: new Y.FormBuilderFieldParagraph({
+                                help: 'Paragraph field Helper',
+                                paragraph: 'Alloy Editor is coming...',
+                                title: 'Paragraph field Title'
+                            })
                         }),
                         new Y.LayoutCol({
                             size: 4
@@ -103,6 +130,10 @@ YUI({ filter:'raw' }).use(
                 fieldClass: Y.FormBuilderFieldText,
                 icon:'glyphicon glyphicon-font',
                 label: 'Text'
+            },{
+                fieldClass: Y.FormBuilderFieldParagraph,
+                icon:'glyphicon glyphicon-font',
+                label: 'Paragraph'
             }],
             layout: layout
         }).render('#formBuilder');

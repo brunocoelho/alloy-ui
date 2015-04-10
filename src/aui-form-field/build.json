@@ -13,6 +13,12 @@
             ]
         },
 
+        "aui-form-field-paragraph": {
+            "jsfiles": [
+                "js/aui-form-field-paragraph.js"
+            ]
+        },
+
         "aui-form-field-required": {
             "jsfiles": [
                 "js/aui-form-field-required.js"

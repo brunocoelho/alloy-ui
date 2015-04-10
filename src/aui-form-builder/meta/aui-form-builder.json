@@ -38,6 +38,14 @@
         ]
     },
 
+    "aui-form-builder-field-paragraph": {
+        "requires": [
+            "aui-form-builder-field-base",
+            "aui-form-field-paragraph",
+            "aui-paragraph-data-editor"
+        ]
+    },
+
     "aui-form-builder-field-sentence": {
         "requires": [
             "aui-form-builder-field-base",

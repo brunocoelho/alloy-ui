@@ -19,6 +19,12 @@
             ]
         },
 
+        "aui-form-builder-field-paragraph": {
+            "jsfiles": [
+                "js/aui-form-builder-field-paragraph.js"
+            ]
+        },
+
         "aui-form-builder-field-sentence": {
             "jsfiles": [
                 "js/aui-form-builder-field-sentence.js"

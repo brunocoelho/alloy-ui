@@ -15,6 +15,12 @@
         "skinnable": true
     },
 
+    "aui-form-field-paragraph": {
+        "requires": [
+            "aui-form-field-required"
+        ]
+    },
+
     "aui-form-field-required": {
         "requires": [
             "aui-form-field"

@@ -25,6 +25,12 @@
         ],
         "skinnable": true
     },
+    "aui-paragraph-data-editor": {
+        "requires": [
+            "alloy-editor",
+            "aui-data-editor"
+        ]
+    },
     "aui-radio-group-data-editor": {
         "requires": [
             "aui-data-editor",
